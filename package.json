@@ -1,4 +1,10 @@
 {
+  "name": "us-geopolitical-map-visualization",
+  "version": "0.1.0",
+  "description": "A U.S. geopolitical party map visualization built using D3",
+  "license": "MIT",
+  "author": "Concision <contact@concision.me>",
+  "repository": "https://github.com/concision/us-geopolitical-map-visualization.git",
   "devDependencies": {
     "topojson": "^3.0.2"
   }
