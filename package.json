@@ -6,6 +6,7 @@
   "author": "Concision <contact@concision.me>",
   "repository": "https://github.com/concision/us-geopolitical-map-visualization.git",
   "devDependencies": {
-    "topojson": "^3.0.2"
+    "topojson": "^3.0.2",
+    "typescript": "^3.9.7"
   }
 }
