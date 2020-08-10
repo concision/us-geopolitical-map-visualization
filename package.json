@@ -5,7 +5,13 @@
   "license": "MIT",
   "author": "Concision <contact@concision.me>",
   "repository": "https://github.com/concision/us-geopolitical-map-visualization.git",
+  "scripts": {
+    "lint": "eslint --color --config .eslintrc.js --ext .js,.ts ."
+  },
   "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^3.8.0",
+    "@typescript-eslint/parser": "^3.8.0",
+    "eslint": "^7.6.0",
     "topojson": "^3.0.2",
     "typescript": "^3.9.7"
   }
