@@ -1,9 +1,9 @@
-import {Gulpclass, Task} from "gulpclass/Decorators";
-import * as fs from "fs";
 import axios, {AxiosResponse} from "axios";
-import * as path from "path";
+import {Gulpclass, Task} from "gulpclass/Decorators";
 import moment from "moment";
 import log from "fancy-log";
+import {existsSync, readFileSync, statSync, writeFileSync} from "fs";
+import {resolve} from "path";
 
 /**
  * A congressional district session structure
@@ -31,7 +31,7 @@ export interface CongressionalSession {
 class Gulpfile {
     // sessions
     private static readonly SESSIONS_URL: string = "http://cdmaps.polisci.ucla.edu/js/sessions.js";
-    private static readonly SESSIONS_FILE: string = path.resolve("data", "congresses", "sessions.json");
+    private static readonly SESSIONS_FILE: string = resolve("data", "congresses", "sessions.json");
 
     // districts
     // district urls are 1-indexed
@@ -52,12 +52,12 @@ class Gulpfile {
 
         // dirty hack - an if statement that allows breaking
         // noinspection LoopStatementThatDoesntLoopJS
-        while /* if */ (fs.existsSync(Gulpfile.SESSIONS_FILE)) {
+        while /* if */ (existsSync(Gulpfile.SESSIONS_FILE)) {
             log.info(`Reading cached sessions: ${Gulpfile.SESSIONS_FILE}`);
 
             // continue fetch if cached sessions is older than a day
             try {
-                const lastModified: Date = fs.statSync(Gulpfile.SESSIONS_FILE).mtime;
+                const lastModified: Date = statSync(Gulpfile.SESSIONS_FILE).mtime;
                 if (moment(lastModified).isBefore(moment().subtract(1, "days"))) {
                     log.info("Ignoring cached sessions as it is older than a day");
                     break;
@@ -70,7 +70,7 @@ class Gulpfile {
             // read sessions
             let contents: string;
             try {
-                contents = fs.readFileSync(Gulpfile.SESSIONS_FILE, "utf8");
+                contents = readFileSync(Gulpfile.SESSIONS_FILE, "utf8");
             } catch (error) {
                 log.error("Failed to read cached sessions");
                 throw error;
@@ -143,7 +143,7 @@ class Gulpfile {
         log.info(`Loaded ${this.sessions.length} congressional districts`);
 
         // cache sessions
-        fs.writeFileSync(Gulpfile.SESSIONS_FILE, JSON.stringify(this.sessions));
+        writeFileSync(Gulpfile.SESSIONS_FILE, JSON.stringify(this.sessions));
 
         return this.sessions;
     }
@@ -154,7 +154,6 @@ class Gulpfile {
     @Task("fetch:maps")
     public async fetch(): Promise<void> {
         // fetch sessions
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const sessions = await this.fetchSessions();
+        await this.fetchSessions();
     }
 }
