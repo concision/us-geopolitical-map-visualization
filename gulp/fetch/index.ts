@@ -1,5 +1,5 @@
 import {Gulpclass, SequenceTask} from "gulpclass/Decorators";
-import "./FetchCongressionalDistrictMaps.ts";
+import "./FetchCongressionalDistrictMaps";
 
 @Gulpclass()
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
