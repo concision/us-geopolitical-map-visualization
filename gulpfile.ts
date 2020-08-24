@@ -1,5 +1,10 @@
-import {Gulpclass} from "gulpclass/Decorators";
+import {Gulpclass, SequenceTask} from "gulpclass/Decorators";
+import "./gulp/fetch/index.ts";
 
 @Gulpclass()
-export class Gulpfile {
+class Gulpfile {
+    @SequenceTask("default")
+    public default(): string[] {
+        return ["fetch"];
+    }
 }
