@@ -22,6 +22,7 @@
     "eslint-plugin-import": "^2.22.0",
     "gulp": "^4.0.2",
     "gulpclass": "^0.2.0",
+    "html-webpack-plugin": "^4.3.0",
     "moment": "^2.27.0",
     "ts-loader": "^8.0.3",
     "ts-node": "^9.0.0",
