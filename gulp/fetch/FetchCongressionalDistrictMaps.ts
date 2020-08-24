@@ -27,6 +27,7 @@ export interface CongressionalSession {
  * Fetches congressional district shapes and session data from http://cdmaps.polisci.ucla.edu/
  */
 @Gulpclass()
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 class Gulpfile {
     // sessions
     private static readonly SESSIONS_URL: string = "http://cdmaps.polisci.ucla.edu/js/sessions.js";
@@ -153,6 +154,7 @@ class Gulpfile {
     @Task("fetch:maps")
     public async fetch(): Promise<void> {
         // fetch sessions
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const sessions = await this.fetchSessions();
     }
 }
