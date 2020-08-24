@@ -1,4 +1,5 @@
 import {Gulpclass, SequenceTask} from "gulpclass/Decorators";
+import "./FetchCongressionalDistrictMaps.ts";
 
 @Gulpclass()
 class Gulpfile {
@@ -7,6 +8,6 @@ class Gulpfile {
      */
     @SequenceTask("fetch")
     public fetch(): string[] {
-        return [];
+        return ["fetch:sessions", "fetch:maps"];
     }
 }
