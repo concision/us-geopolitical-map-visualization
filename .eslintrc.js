@@ -19,8 +19,4 @@ module.exports = {
     env: {
         browser: true,
     },
-    globals: {
-        "d3": "readonly",
-        "topojson": "readonly",
-    },
 };
