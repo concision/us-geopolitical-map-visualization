@@ -1,5 +1,6 @@
 import {ConfigurationFactory} from "webpack";
 import HtmlWebpackPlugin from "html-webpack-plugin";
+import {CleanWebpackPlugin} from "clean-webpack-plugin";
 import {resolve} from "path";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -22,6 +23,7 @@ const config: ConfigurationFactory = (...[env, arg]: Parameters<ConfigurationFac
             }],
         },
         plugins: [
+            new CleanWebpackPlugin(),
             new HtmlWebpackPlugin({
                 template: "./src/index.html",
                 inject: "head",
