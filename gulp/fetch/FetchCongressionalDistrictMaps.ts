@@ -2,8 +2,11 @@ import axios, {AxiosResponse} from "axios";
 import {Gulpclass, Task} from "gulpclass/Decorators";
 import moment from "moment";
 import log from "fancy-log";
-import {existsSync, readFileSync, statSync, writeFileSync} from "fs";
-import {resolve} from "path";
+import {Entry, Parse} from "unzipper";
+import {createWriteStream, existsSync, mkdirSync, readFileSync, rmdirSync, statSync, writeFileSync} from "fs";
+import {basename, dirname, extname, join, resolve} from "path";
+import {IncomingMessage} from "http";
+
 
 /**
  * A congressional district session structure
@@ -31,25 +34,29 @@ export interface CongressionalSession {
 class Gulpfile {
     // sessions
     private static readonly SESSIONS_URL: string = "http://cdmaps.polisci.ucla.edu/js/sessions.js";
-    private static readonly SESSIONS_FILE: string = resolve("data", "congresses", "sessions.json");
+    private static readonly SESSIONS_FILE: string = resolve("data", "sessions.json");
 
     // districts
     // district urls are 1-indexed
     private static readonly DISTRICT_URL = (id: number) => `http://cdmaps.polisci.ucla.edu/shp/districts${id.toString().padStart(3, "0")}.zip`;
+    private static readonly FETCH_RETRIES = 3;
+    private static readonly EXPECTED_EXTENSIONS: readonly string[] = Object.freeze([".dbf", ".prj", ".shp", ".shx"]);
+    private static readonly GEOJSON_DIRECTORY: string = resolve("data", "congresses");
 
-    private sessions?: Array<CongressionalSession>;
+    private sessions?: CongressionalSession[];
 
     /**
      * Fetches congressional district session dates from {@link SESSIONS_URL}.
      * Caches parsed sessions to {@link SESSIONS_FILE}; will ignore a cached session if it is older than a day.
      */
     @Task("fetch:sessions")
-    public async fetchSessions(): Promise<Gulpfile["sessions"]> {
+    public async fetchSessions(): Promise<CongressionalSession[]> {
         // check cached loaded sessions
         if (this.sessions) {
             return this.sessions;
         }
 
+        // check cache file for expiration
         // dirty hack - an if statement that allows breaking
         // noinspection LoopStatementThatDoesntLoopJS
         while /* if */ (existsSync(Gulpfile.SESSIONS_FILE)) {
@@ -94,7 +101,7 @@ class Gulpfile {
         }
 
 
-        // fetch sessions
+        // fetch sessions from SESSIONS_URL
         log.info(`Fetching sessions from ${Gulpfile.SESSIONS_URL}`);
         let response: AxiosResponse<string>;
         try {
@@ -105,20 +112,25 @@ class Gulpfile {
         }
 
         // read raw response
-        const sessionsRaw: string = response.data;
-        if (!sessionsRaw) throw new Error(`could not fetch congressional sessions; falsy response: ${sessionsRaw}`);
+        const sessionsString: string = response.data;
+        if (!sessionsString)
+            throw new Error(`could not fetch congressional sessions; falsy response: ${sessionsString}`);
 
         // find JSON string array
-        const sessionsMatch: RegExpMatchArray | null = sessionsRaw.match(/^(?:\s+)?var\s+\w+(?:\s+)=(?:\s+)(.*)(?:\s+)?$/);
-        if (sessionsMatch === null) throw new Error(`could not parse array from congressional sessions: ${sessionsRaw}`);
+        const sessionsMatch: RegExpMatchArray | null = sessionsString.match(/^(?:\s+)?var\s+\w+(?:\s+)=(?:\s+)(.*)(?:\s+)?$/);
+        if (sessionsMatch === null)
+            throw new Error(`could not parse array from congressional sessions: ${sessionsString}`);
 
         // parse JSON structure
         const sessionsJson = JSON.parse(sessionsMatch[1]);
         if (!Array.isArray(sessionsJson) || !sessionsJson.every((element: unknown) => typeof element === "string"))
-            throw new TypeError("congressional sessions must be a string array");
+            throw new TypeError(`congressional sessions must be a string array; received: ${sessionsString}`);
+
+
+        // initialize sessions
+        this.sessions = [];
 
         // process dates
-        this.sessions = [];
         for (const [id, date] of sessionsJson.entries()) {
             // split start and end dates
             const [from, to]: [string, string] = date.split(" to ");
@@ -138,7 +150,7 @@ class Gulpfile {
             }
 
             // add to known sessions
-            this.sessions.push({id, start: fromDate, end: toDate});
+            this.sessions.push({id: id + 1, start: fromDate, end: toDate});
         }
         log.info(`Loaded ${this.sessions.length} congressional districts`);
 
@@ -152,8 +164,118 @@ class Gulpfile {
      * Fetch and process congressional district shape files from {@link DISTRICT_URL}.
      */
     @Task("fetch:maps")
-    public async fetch(): Promise<void> {
+    public async fetchMaps(): Promise<void> {
         // fetch sessions
-        await this.fetchSessions();
+        const sessions: CongressionalSession[] = await this.fetchSessions();
+
+        // process all maps
+        for (const session of sessions) {
+            let executed = false;
+
+            // try up to 3 times
+            for (let i = 1; i <= 3; i++) {
+                try {
+                    await this.fetch(session);
+                    executed = true;
+                    break;
+                } catch (error) {
+                    log.error(`An unexpected error occurred while fetching congressional district ${session.id}${i != Gulpfile.FETCH_RETRIES ? ", retrying..." : ""}`, error);
+                }
+            }
+
+            if (!executed) {
+                log.error(`Failed to fetch congressional district ${session.id}`);
+            }
+        }
+    }
+
+    /**
+     * Fetch a specific congressional session to temp
+     * @param district
+     * @private
+     */
+    private async fetch(district: CongressionalSession): Promise<void> {
+        // geoJSON target file
+        const geoJsonFile: string = resolve(Gulpfile.GEOJSON_DIRECTORY, `session-${district.id}.geojson`);
+
+        // check for cached geoJSON file
+        if (existsSync(geoJsonFile)) {
+            log.info(`District ${district.id} GeoJson already cached; skipping`);
+            return;
+        }
+
+        // generate district url
+        const districtUrl: string = Gulpfile.DISTRICT_URL(district.id);
+        log.info(`Fetching district ${district.id} from ${districtUrl}`);
+
+        // use a temporary directory
+        const directory: string = join("temp", `district-${district.id}`);
+        // clean temporary directory
+        rmdirSync(directory, {recursive: true});
+        mkdirSync(directory, {recursive: true});
+
+
+        // initiate request
+        const cancellationToken = axios.CancelToken.source();
+        const response: AxiosResponse<IncomingMessage> = await axios.get(
+            districtUrl,
+            {
+                responseType: "stream",
+                cancelToken: cancellationToken.token,
+            },
+        );
+
+        // expected file extensions
+        const remainingExtensions: string[] = [...Gulpfile.EXPECTED_EXTENSIONS];
+
+        // fetch data to the temporary directory
+        await new Promise((...[resolve, reject]: Parameters<ConstructorParameters<PromiseConstructor>[0]>) => {
+            response.data
+                // note: the position of this event callback is important that it comes before unzipping
+                .on("close", async function (this: IncomingMessage) {
+                    if (!this.complete) {
+                        reject(new Error("stream unexpectedly closed"));
+                    }
+                })
+                // decompress zip stream
+                .pipe(Parse())
+                // process each entry
+                .on("entry", (entry: Entry) => {
+                    // get entry extension
+                    const extension: string = extname(entry.path).toLowerCase();
+
+                    // remove extension from remaining extensions expected
+                    remainingExtensions.splice(remainingExtensions.indexOf(extension), 1);
+
+                    // ignore irrelevant files
+                    if (!(entry.type === "File" && dirname(entry.path) === "districtShapes" && remainingExtensions.includes(extension))) {
+                        entry.autodrain();
+                        return;
+                    }
+
+                    // compose temporary file path
+                    const filePath = join(directory, basename(entry.path));
+
+                    // pipe stream to file
+                    entry.pipe(createWriteStream(filePath))
+                        // on write complete; check cancellation
+                        .on("close", () => {
+                            // if all expected extensions were collected, terminate early to save potential bandwidth
+                            if (remainingExtensions.length === 0) {
+                                // cancel axios request
+                                cancellationToken.cancel();
+                            }
+                        });
+
+                })
+                .on("close", () => {
+                    resolve();
+                });
+        });
+
+        // sanity check warning
+        if (remainingExtensions.length !== 0) {
+            log.warn("Congressional district map archived expected to contain one of each file type: ", Gulpfile.EXPECTED_EXTENSIONS, "found: " + remainingExtensions);
+        }
     }
 }
