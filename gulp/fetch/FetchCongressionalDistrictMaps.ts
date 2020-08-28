@@ -6,6 +6,7 @@ import {Entry, Parse} from "unzipper";
 import {createWriteStream, existsSync, mkdirSync, readFileSync, rmdirSync, statSync, writeFileSync} from "fs";
 import {basename, dirname, extname, join, resolve} from "path";
 import {IncomingMessage} from "http";
+import {exec, ExecException} from "child_process";
 
 
 /**
@@ -175,7 +176,7 @@ class Gulpfile {
             // try up to 3 times
             for (let i = 1; i <= 3; i++) {
                 try {
-                    await this.fetch(session);
+                    await this.fetchGeoJson(session);
                     executed = true;
                     break;
                 } catch (error) {
@@ -190,11 +191,11 @@ class Gulpfile {
     }
 
     /**
-     * Fetch a specific congressional session to temp
-     * @param district
+     * Fetch a specific congressional session to a GeoJSON file
+     * @param district {@link CongressionalSession} to fetch
      * @private
      */
-    private async fetch(district: CongressionalSession): Promise<void> {
+    private async fetchGeoJson(district: CongressionalSession): Promise<void> {
         // geoJSON target file
         const geoJsonFile: string = resolve(Gulpfile.GEOJSON_DIRECTORY, `session-${district.id}.geojson`);
 
@@ -244,14 +245,14 @@ class Gulpfile {
                     // get entry extension
                     const extension: string = extname(entry.path).toLowerCase();
 
-                    // remove extension from remaining extensions expected
-                    remainingExtensions.splice(remainingExtensions.indexOf(extension), 1);
-
                     // ignore irrelevant files
                     if (!(entry.type === "File" && dirname(entry.path) === "districtShapes" && remainingExtensions.includes(extension))) {
                         entry.autodrain();
                         return;
                     }
+
+                    // remove extension from remaining extensions expected
+                    remainingExtensions.splice(remainingExtensions.indexOf(extension), 1);
 
                     // compose temporary file path
                     const filePath = join(directory, basename(entry.path));
@@ -277,5 +278,34 @@ class Gulpfile {
         if (remainingExtensions.length !== 0) {
             log.warn("Congressional district map archived expected to contain one of each file type: ", Gulpfile.EXPECTED_EXTENSIONS, "found: " + remainingExtensions);
         }
+
+
+        // execute converter
+        await new Promise<void>((resolve, reject) => {
+            // noinspection JSUnusedLocalSymbols
+            const process = exec(
+                `ogr2ogr -f GeoJSON -t_srs crs:84 "${geoJsonFile}" "${directory}"`,
+                // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                (error: ExecException | null, stdout: string, stderr: string): void => {
+                    if (error) {
+                        log.error("Failed to process ogr2ogr map conversion");
+                        log.error(error);
+                    }
+                },
+            );
+
+            // watch exit
+            process.on("exit", (code: number) => {
+                if (code === 0) {
+                    resolve();
+                } else {
+                    reject(new Error(`ogr2ogr exited with error code ${code}`));
+                }
+            });
+        });
+
+
+        // clean temporary directory
+        rmdirSync(directory, {recursive: true});
     }
 }
