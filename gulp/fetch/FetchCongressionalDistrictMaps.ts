@@ -3,7 +3,16 @@ import {Gulpclass, Task} from "gulpclass/Decorators";
 import moment from "moment";
 import log from "fancy-log";
 import {Entry, Parse} from "unzipper";
-import {createWriteStream, existsSync, mkdirSync, readFileSync, rmdirSync, statSync, writeFileSync} from "fs";
+import {
+    createWriteStream,
+    existsSync,
+    mkdirSync,
+    readFileSync,
+    rmdirSync,
+    statSync,
+    writeFileSync,
+    WriteStream,
+} from "fs";
 import {basename, dirname, extname, join, resolve} from "path";
 import {IncomingMessage} from "http";
 import {exec, ExecException} from "child_process";
@@ -231,11 +240,19 @@ class Gulpfile {
 
         // fetch data to the temporary directory
         await new Promise((...[resolve, reject]: Parameters<ConstructorParameters<PromiseConstructor>[0]>) => {
+            // write streams to clean up if a socket failure occurs (due to file locking)
+            const streams: WriteStream[] = [];
+
             response.data
                 // note: the position of this event callback is important that it comes before unzipping
                 .on("close", async function (this: IncomingMessage) {
                     if (!this.complete) {
                         reject(new Error("stream unexpectedly closed"));
+
+                        // close all streams to release file lock
+                        for (const stream of streams) {
+                            stream.close();
+                        }
                     }
                 })
                 // decompress zip stream
@@ -258,9 +275,16 @@ class Gulpfile {
                     const filePath = join(directory, basename(entry.path));
 
                     // pipe stream to file
-                    entry.pipe(createWriteStream(filePath))
+                    const fileWriteStream = createWriteStream(filePath);
+                    streams.push(fileWriteStream);
+
+                    // decompress
+                    entry.pipe(fileWriteStream)
                         // on write complete; check cancellation
                         .on("close", () => {
+                            // finished writing; remove write stream
+                            streams.splice(streams.indexOf(fileWriteStream), 1);
+
                             // if all expected extensions were collected, terminate early to save potential bandwidth
                             if (remainingExtensions.length === 0) {
                                 // cancel axios request
