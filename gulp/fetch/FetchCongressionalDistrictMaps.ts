@@ -75,7 +75,7 @@ class Gulpfile {
             // continue fetch if cached sessions is older than a day
             try {
                 const lastModified: Date = statSync(Gulpfile.SESSIONS_FILE).mtime;
-                if (moment(lastModified).isBefore(moment().subtract(1, "days"))) {
+                if (moment(lastModified).isBefore(moment().subtract(1, "month"))) {
                     log.info("Ignoring cached sessions as it is older than a day");
                     break;
                 }
