@@ -60,7 +60,12 @@ export class Gulpfile {
 
     @Task("fetch:party_codes")
     public async fetchPartyCodes(): Promise<void> {
-        if (existsSync(Gulpfile.PARTY_CODES_FILE)) {
+        // check cache file for expiration
+        // dirty hack - an if statement that allows breaking
+        // noinspection LoopStatementThatDoesntLoopJS
+        while /* if */ (existsSync(Gulpfile.PARTY_CODES_FILE)) {
+            log.info(`Reading cached party codes: ${Gulpfile.PARTY_CODES_FILE}`);
+
             // try cached data
             try {
                 const lastModified: Date = statSync(Gulpfile.PARTY_CODES_FILE).mtime;
@@ -73,6 +78,7 @@ export class Gulpfile {
                 log.error("Failed to read last modified time");
                 throw error;
             }
+            return;
         }
 
 
@@ -122,19 +128,23 @@ export class Gulpfile {
 
     @Task("fetch:state_codes")
     public async fetchStateCodes(): Promise<void> {
-        // try cached data
-        if (existsSync(Gulpfile.STATE_CODES_FILE)) {
+        // check cache file for expiration
+        // dirty hack - an if statement that allows breaking
+        // noinspection LoopStatementThatDoesntLoopJS
+        while /* if */ (existsSync(Gulpfile.STATE_CODES_FILE)) {
+            log.info(`Reading cached states codes: ${Gulpfile.STATE_CODES_FILE}`);
             try {
                 const lastModified: Date = statSync(Gulpfile.STATE_CODES_FILE).mtime;
                 // check expiration
                 if (moment(lastModified).isBefore(moment().subtract(1, "month"))) {
                     log.info("Ignoring state codes as it is older than a month");
-                    return;
+                    break;
                 }
             } catch (error) {
                 log.error("Failed to read last modified time");
                 throw error;
             }
+            return;
         }
 
 
