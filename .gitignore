@@ -1,5 +1,6 @@
 ### Project Specific ###
-temp
+temp/
+data/fetched/
 
 # Created by https://www.toptal.com/developers/gitignore/api/node,intellij+all,visualstudiocode,git,linux,windows,macos
 # Edit at https://www.toptal.com/developers/gitignore?templates=node,intellij+all,visualstudiocode,git,linux,windows,macos
