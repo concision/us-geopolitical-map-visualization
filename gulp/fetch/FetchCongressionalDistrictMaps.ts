@@ -44,14 +44,14 @@ export interface CongressionalSession {
 class Gulpfile {
     // sessions
     private static readonly SESSIONS_URL: string = "http://cdmaps.polisci.ucla.edu/js/sessions.js";
-    private static readonly SESSIONS_FILE: string = resolve("data", "sessions.json");
+    private static readonly SESSIONS_FILE: string = resolve("data", "fetched", "sessions.json");
 
     // districts
     // district urls are 1-indexed
     private static readonly DISTRICT_URL = (id: number) => `http://cdmaps.polisci.ucla.edu/shp/districts${id.toString().padStart(3, "0")}.zip`;
     private static readonly FETCH_RETRIES = 3;
     private static readonly EXPECTED_EXTENSIONS: readonly string[] = Object.freeze([".dbf", ".prj", ".shp", ".shx"]);
-    private static readonly GEOJSON_DIRECTORY: string = resolve("data", "congresses");
+    private static readonly GEOJSON_DIRECTORY: string = resolve("data", "fetched", "congresses");
 
     private sessions?: CongressionalSession[];
 
@@ -76,7 +76,7 @@ class Gulpfile {
             try {
                 const lastModified: Date = statSync(Gulpfile.SESSIONS_FILE).mtime;
                 if (moment(lastModified).isBefore(moment().subtract(1, "month"))) {
-                    log.info("Ignoring cached sessions as it is older than a day");
+                    log.info("Ignoring cached sessions as it is older than a month");
                     break;
                 }
             } catch (error) {

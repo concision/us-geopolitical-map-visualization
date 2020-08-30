@@ -10,6 +10,6 @@ class Gulpfile {
      */
     @SequenceTask("fetch")
     public fetch(): string[] {
-        return ["fetch:sessions", "fetch:maps"];
+        return ["fetch:sessions", "fetch:maps", "fetch:party_codes", "fetch:state_codes"];
     }
 }

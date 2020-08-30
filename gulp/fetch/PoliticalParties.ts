@@ -44,7 +44,7 @@ export class Gulpfile {
      * Cached party codes file
      * @private
      */
-    private static readonly PARTY_CODES_FILE: string = resolve("data", "party_codes.json");
+    private static readonly PARTY_CODES_FILE: string = resolve("data", "fetched", "party_codes.json");
 
     /**
      * Resolves state codes to state names
@@ -55,7 +55,7 @@ export class Gulpfile {
      * Cached state codes file
      * @private
      */
-    private static readonly STATE_CODES_FILE: string = resolve("data", "state_codes.json");
+    private static readonly STATE_CODES_FILE: string = resolve("data", "fetched", "state_codes.json");
 
 
     @Task("fetch:party_codes")
