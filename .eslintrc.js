@@ -34,7 +34,7 @@ module.exports = {
         "import/no-self-import": ["error"],
         "import/no-cycle": ["error"],
         "import/no-useless-path-segments": ["error"],
-        "import/no-relative-parent-imports": ["error"],
+        "import/no-relative-parent-imports": ["warn"],
         "import/no-mutable-exports": ["error"],
         "import/no-unused-modules": ["warn"],
         "import/first": ["error"],
