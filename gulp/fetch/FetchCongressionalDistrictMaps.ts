@@ -12,17 +12,26 @@ import {exec, ExecException} from "child_process";
  */
 @Gulpclass()
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-class Maps {
+export class Maps {
     /**
      * Temporary directory path for zip file decompression and GeoJSON conversions
      * @private
      */
     private static readonly TEMP_DIRECTORY = (id: number): string => resolve("temp", "congress", `${id}`);
     /**
+     * Converted GeoJSON output directory path
+     * @private
+     */
+    public static readonly GEOJSON_FILES: string = resolve("data", "fetched", "congresses");
+    /**
      * Converted GeoJSON output file path
      * @private
      */
-    private static readonly GEOJSON_FILE = (id: number): string => resolve("data", "fetched", "congresses", `session-${id}.geojson`);
+    private static readonly GEOJSON_FILE = (id: number): string => resolve(Maps.GEOJSON_FILES, `session-${id}.geojson`);
+    /**
+     * GeoJSON file name regular expression to capture
+     */
+    public static readonly GEOJSON_FILE_REGEX = /^session-(?<id>\d+).geojson$/;
     /**
      * Expected extensions for shapefile archives to contain; warnings are emitted if an archive is missing an extension
      * @private
