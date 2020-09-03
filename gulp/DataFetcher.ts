@@ -1,6 +1,6 @@
 import {Gulpclass, SequenceTask} from "gulpclass/Decorators";
-import "./FetchCongressionalDistrictMaps";
-import "./FetchCongressionalLegislators";
+import "./fetch/FetchCongressionalDistrictMaps";
+import "./fetch/FetchCongressionalLegislators";
 
 @Gulpclass()
 // eslint-disable-next-line @typescript-eslint/no-unused-vars

@@ -1,5 +1,5 @@
 // eslint-disable-next-line import/no-relative-parent-imports
-import {Maps} from "../fetch/FetchCongressionalDistrictMaps";
+import {Maps} from "./fetch/FetchCongressionalDistrictMaps";
 import {Gulpclass, Task} from "gulpclass/Decorators";
 import log from "fancy-log";
 // eslint-disable-next-line import/no-unresolved

@@ -1,6 +1,6 @@
 import {Gulpclass, SequenceTask} from "gulpclass/Decorators";
-import "./gulp/fetch";
-import "./gulp/transform";
+import "./gulp/DataFetcher";
+import "./gulp/TopojsonConverter";
 
 @Gulpclass()
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
