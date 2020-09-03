@@ -1,9 +1,10 @@
 module.exports = {
     extends: [
-      "../.eslintrc",
+        "../.eslintrc",
     ],
     rules: {
         // eslint-plugin-import
         "import/no-unassigned-import": ["error"],
+        "import/no-namespace": ["error"],
     },
 };

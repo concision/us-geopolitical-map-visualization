@@ -24,7 +24,7 @@ module.exports = {
     ],
     rules: {
         // eslint-plugin-import
-        "import/no-unresolved": ["error"],
+        "import/no-unresolved": ["warn"],
         "import/named": ["error"],
         "import/default": ["error"],
         "import/namespace": ["error"],
@@ -41,6 +41,5 @@ module.exports = {
         "import/no-duplicates": ["error"],
         "import/order": ["error", {"groups": ["index", "sibling", "parent", "internal", "external", "builtin", "object"]}],
         "import/newline-after-import": ["error"],
-        "import/no-namespace": ["error"],
     },
 };
